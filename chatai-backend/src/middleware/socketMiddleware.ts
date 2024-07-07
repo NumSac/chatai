@@ -6,7 +6,7 @@ export async function authorizationMiddleware(
   socket: Socket,
   next: (err?: ExtendedError) => void
 ) {
-  const token = socket.handshake.headers["authorization"];
+  const token = socket.handshake.headers["Authorization"];
 
   try {
     // Assuming a hypothetical `decryptAndValidateToken` function that throws if invalid

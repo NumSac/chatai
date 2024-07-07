@@ -1,6 +1,5 @@
 import http from "http";
 import express, { Request, Response } from "express";
-import fs from "fs";
 import WebSocket from "./lib/websocket";
 import { onWebSocketConnect } from "./core/socketEventHandler";
 import { authorizationMiddleware } from "./middleware/socketMiddleware";
@@ -13,7 +12,6 @@ export class SocketServer {
   private readonly HTTP_PORT = process.env.HTTP_PORT || 8001;
   private readonly HTTPS_PORT = process.env.HTTPS_PORT || 8443;
   private httpServer!: http.Server;
-  // private httpsServer: https.Server;
   private app!: express.Application;
   private io!: WebSocket;
 
@@ -37,24 +35,6 @@ export class SocketServer {
         environment: process.env.NODE_ENV || "development",
       });
     });
-  }
-
-  private readCreds(): any {
-    try {
-      const privateKey = fs.readFileSync(
-        process.env.PRIVATE_KEY_PATH || "key.pem",
-        "utf8"
-      );
-      const certificate = fs.readFileSync(
-        process.env.CERTIFICATE_PATH || "cert.pem",
-        "utf8"
-      );
-
-      return { key: privateKey, cert: certificate };
-    } catch (error) {
-      console.error("Failed to load credentials:", error);
-      return null;
-    }
   }
 
   private createServer(): void {
