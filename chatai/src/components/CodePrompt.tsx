@@ -9,6 +9,7 @@ import { promptSchema } from "@/lib/validations/prompt";
 import { z } from "zod";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSocket } from "@/context/SocketContext";
+import { WebsocketEvents } from "@/lib/websocket-events.enum";
 
 interface PromptFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -40,7 +41,7 @@ export default function CodePrompt({ className, ...props }: PromptFormProps) {
       alert("Sorry, your browser doesn't support text to speech!");
     }
     // Listener setup can remain the same or be removed if not needed
-    socket?.on("prompt_output", (newMessage: string) => {
+    socket?.on(WebsocketEvents.ChatMessageRes, (newMessage: string) => {
       //setPromptMessages((prevMessages) => [...prevMessages, newMessage]);
 
       var msg = new SpeechSynthesisUtterance();
@@ -50,7 +51,7 @@ export default function CodePrompt({ className, ...props }: PromptFormProps) {
     });
 
     return () => {
-      socket?.off("prompt_output");
+      socket?.off(WebsocketEvents.ChatMessageRes);
     };
   }, [socket]);
 
@@ -60,7 +61,7 @@ export default function CodePrompt({ className, ...props }: PromptFormProps) {
     setPromptMessages((prevMessages) => [...prevMessages, newMessage]);
     setMessageId((prevId) => prevId + 1); // Increment the message ID for the next message
 
-    socket!.emit("prompt_input", data.input);
+    socket!.emit(WebsocketEvents.ChatMessageReq, data.input);
 
     reset();
     setIsLoading(false);

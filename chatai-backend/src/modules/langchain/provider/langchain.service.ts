@@ -1,15 +1,23 @@
 import { ChatOpenAI, OpenAI } from '@langchain/openai';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { ConversationChain } from 'langchain/chains';
 import { BufferMemory } from 'langchain/memory';
+import { LlmUserMessage } from '../entities/llm-user-message.entity';
+import { read } from 'fs';
+import { Repository } from 'typeorm';
+import { ChatInstance } from '../entities/chat-instance.entity';
+import { BaseMessage } from '@langchain/core/messages';
+import { Observable } from 'rxjs';
 
 @Injectable()
-export class LangchainChatService {
+export class LangchainService {
   private conversation: ConversationChain;
 
-  constructor() {
-    // Inject Llm Message Repository
-
+  constructor(
+    @InjectRepository(ChatInstance)
+    private readonly chatInstanceRepository: Repository<ChatInstance>,
+  ) {
     // Initialize OpenAI LLM
     const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -26,11 +34,5 @@ export class LangchainChatService {
       llm,
       memory,
     });
-  }
-
-  public async getChatResponse(input: string): Promise<string> {
-    // Get the response from the LangChain conversation
-    const response = await this.conversation.call({ input });
-    return response.response;
   }
 }

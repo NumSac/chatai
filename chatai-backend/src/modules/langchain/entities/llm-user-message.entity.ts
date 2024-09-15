@@ -1,7 +1,12 @@
 import { IsString } from 'class-validator';
-import { Column } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { ChatInstance } from './chat-instance.entity';
 
+@Entity()
 export class LlmUserMessage {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   @Column({
     type: 'text',
     nullable: false,
@@ -13,4 +18,7 @@ export class LlmUserMessage {
     nullable: false,
   })
   aiMessage: string;
+
+  @ManyToOne(() => ChatInstance, (chatInstance) => chatInstance.llmUserMessages)
+  chatInstance: ChatInstance;
 }
