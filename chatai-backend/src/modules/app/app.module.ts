@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
-
 import { LangchainModule } from '../langchain/langchain.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
-import { EventsModule } from '../events/events.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import appConfig from 'src/config/app.config';
 import databaseConfig from 'src/config/database.config';
 import environmentValidation from '../../config/environment.validation';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthenticationGuard } from '../auth/guards/authentication/authentication.guard';
+import { AccessTokenGuard } from '../auth/guards/acess-token/access-token.guard';
+import { JwtModule } from '@nestjs/jwt';
+import jwtConfig from 'src/config/jwt.config';
 
 // Get the current NODE_ENV
 const ENV = process.env.NODE_ENV;
@@ -18,7 +21,6 @@ const ENV = process.env.NODE_ENV;
     LangchainModule,
     UserModule,
     AuthModule,
-    EventsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       //envFilePath: ['.env.development', '.env'],
@@ -41,6 +43,15 @@ const ENV = process.env.NODE_ENV;
         database: configService.get('database.name'),
       }),
     }),
+    ConfigModule.forFeature(jwtConfig),
+    JwtModule.registerAsync(jwtConfig.asProvider()),
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthenticationGuard,
+    },
+    AccessTokenGuard,
   ],
 })
 export class AppModule {}

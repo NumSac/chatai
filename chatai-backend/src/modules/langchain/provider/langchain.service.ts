@@ -1,38 +1,70 @@
-import { ChatOpenAI, OpenAI } from '@langchain/openai';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ConversationChain } from 'langchain/chains';
-import { BufferMemory } from 'langchain/memory';
-import { LlmUserMessage } from '../entities/llm-user-message.entity';
-import { read } from 'fs';
-import { Repository } from 'typeorm';
-import { ChatInstance } from '../entities/chat-instance.entity';
-import { BaseMessage } from '@langchain/core/messages';
+import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Stream } from 'openai/streaming';
+import OpenAI from 'openai';
+import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
+import { IChatRequest, IChatResponse } from '../interfaces/chat.interface';
 
 @Injectable()
 export class LangchainService {
-  private conversation: ConversationChain;
+  private openAiService: OpenAI;
 
   constructor(
-    @InjectRepository(ChatInstance)
-    private readonly chatInstanceRepository: Repository<ChatInstance>,
+    private configService: ConfigService,
+    private eventEmitterService: EventEmitter2,
   ) {
     // Initialize OpenAI LLM
     const openaiApiKey = process.env.OPENAI_API_KEY;
 
-    const llm = new OpenAI({
-      openAIApiKey: openaiApiKey,
-      temperature: 0.9,
+    this.openAiService = new OpenAI({
+      apiKey: openaiApiKey,
+    });
+  }
+
+  public async getMessagesData(
+    request: IChatRequest,
+    userId: string,
+  ): Promise<OpenAI.ChatCompletion | Stream<OpenAI.ChatCompletionChunk>> {
+    const response = await this.openAiService.chat.completions.create({
+      model: this.configService.get('OPENAI_API_MODEL'),
+      messages: request.messages,
+      stream: request.stream || false,
     });
 
-    // Initialize memory (using buffer memory for simplicity)
-    const memory = new BufferMemory();
+    if (request.stream) {
+      for await (const chunk of response as Stream<OpenAI.ChatCompletionChunk>) {
+        // emit every message from each response
+        this.eventEmitterService.emit(`streamMessage-${userId}`, chunk);
+      }
+    }
+    return response;
+  }
 
-    // Create conversation chain
-    this.conversation = new ConversationChain({
-      llm,
-      memory,
+  public getStreamMessages(
+    userId: string,
+  ): Observable<OpenAI.ChatCompletionChunk> {
+    return new Observable((subscribe) => {
+      const listener = (message: OpenAI.ChatCompletionChunk) => {
+        if (message.choices[0].finish_reason === 'stop') {
+          subscribe.next(message);
+          return subscribe.complete();
+        }
+        subscribe.next(message);
+      };
+
+      // Listen for user-specific events
+      this.eventEmitterService.on(`streamMessage-${userId}`, listener);
+
+      return () =>
+        this.eventEmitterService.off(`streamMessage-${userId}`, listener);
     });
+  }
+
+  getChatOpenaiResponse(message: OpenAI.ChatCompletion): IChatResponse {
+    return {
+      success: true,
+      message: message?.choices?.length && message?.choices[0],
+    };
   }
 }

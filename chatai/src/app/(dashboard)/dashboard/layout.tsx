@@ -49,7 +49,7 @@ export default async function DashboardLayout({
           <DashboardNav items={dashboardConfig.sidebarNav} />
         </aside>
         <main className="flex w-full flex-1 flex-col overflow-hidden">
-          <SocketProvider jwt={sessionToken.value}>{children}</SocketProvider>
+          {children}
         </main>
       </div>
       <SiteFooter className="border-t" />
