@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/session";
 import MainNav from "@/components/shared/MainNav";
 import { dashboardConfig } from "@/config/dashboard";
 import { DashboardNav } from "@/components/DashboardNav";
-import { SocketProvider } from "@/context/SocketContext";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";

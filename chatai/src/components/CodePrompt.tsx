@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { promptSchema } from "@/lib/validations/prompt";
-import { z } from "zod";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LangChainChatService } from "@/services/ai/chat";
+import { getSession, useSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
+import { getCurrentUser } from "@/lib/session";
+import { authOptions } from "@/lib/auth";
 
 interface PromptFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -60,7 +61,12 @@ export default function CodePrompt({ className, ...props }: PromptFormProps) {
 
     try {
       eventSourceHandler();
-      await LangChainChatService(input);
+
+      const token = await getSession();
+
+      console.log(token?.user.token);
+
+      // await LangChainChatService(input, "");
     } catch (error) {
       console.log(error);
     }

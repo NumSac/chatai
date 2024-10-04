@@ -1,5 +1,5 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import NextAuth, { NextAuthOptions, Session } from "next-auth";
+import { NextAuthOptions } from "next-auth";
 import { JWT } from "next-auth/jwt";
 import GitHubProvider from "next-auth/providers/github";
 import { db } from "./db";
@@ -17,23 +17,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({
-      token,
-      session,
-    }: {
-      token: JWT;
-      session: Session;
-    }): Promise<any> {
-      if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.picture;
-      }
-
-      return session;
-    },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }): Promise<JWT> {
       const dbUser = await db.user.findFirst({
         where: {
           email: token.email!,
@@ -52,19 +36,35 @@ export const authOptions: NextAuthOptions = {
         name: dbUser.name,
         email: dbUser.email,
         picture: dbUser.image,
+        access_token: account?.refresh_token,
       };
     },
+    async session({ session, token, user }) {
+      // This is necessary to retrieve the access token in a comparable acceptable manner
+      const getToken = await db.account.findFirst({
+        where: {
+          userId: token.id,
+        },
+      });
 
-    async redirect({
-      url,
-      baseUrl,
-    }: {
-      url: string;
-      baseUrl: string;
-    }): Promise<any> {
-      return url.startsWith(baseUrl)
-        ? Promise.resolve(url)
-        : Promise.resolve(baseUrl);
+      let accessToken: string | null = null;
+      if (getToken) {
+        accessToken = getToken.access_token!;
+      }
+
+      if (token) {
+        session.user.id = token.id;
+        session.user.name = token.name;
+        session.user.email = token.email;
+        session.user.image = token.picture;
+        session.user.token = token.access_token;
+      }
+
+      return session;
+    },
+
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }): Promise<any> {
+      return url.startsWith(baseUrl) ? Promise.resolve(url) : Promise.resolve(baseUrl);
     },
   },
 };

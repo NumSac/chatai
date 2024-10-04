@@ -27,6 +27,11 @@ export class LangchainController {
     return this.langchainService.getChatOpenaiResponse(getMessages);
   }
 
+  /* 
+  AuthType.None is required because eventsource does not support
+  sending of jwt
+  */
+  @Auth(AuthType.None)
   @Sse('chat-streams')
   getChatStreamsOpenai(): Observable<MessageEvent> {
     return this.langchainService.getStreamMessages('2').pipe(
